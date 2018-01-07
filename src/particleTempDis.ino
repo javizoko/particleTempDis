@@ -54,7 +54,7 @@ void setup()
   dallas.begin();
   //Initialize Javier's tasks
   tasksTemp.init();
-  Time.zone(+2);
+  Time.zone(+1);
   //Setup display
   oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3D (for the 128x64)
 
@@ -106,6 +106,7 @@ void loop()
 
     //Publish
     Particle.publish("DateAndTemp", actualDate + ";" +  String(MeanTempData.temperature[0]) + ";" + String(MeanTempData.measErrors[0]) + ";" + String(MeanTempData.commErrors[0]) + ";" +  String(MeanTempData.temperature[1]) + ";" + String(MeanTempData.measErrors[1]) + ";" + String(MeanTempData.commErrors[1]));
+    Serial.println("Publish now...");
   }
 
   //PRINT LCD

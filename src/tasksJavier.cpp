@@ -29,6 +29,11 @@ MeanTempsData MeanTempData;
 float tempBuffer[NUM_TEMP_SENSORS];
 int numSamples[NUM_TEMP_SENSORS];
 
+/* ADDRESES */
+uint8_t externalSensorAddress[8] = {0x22,0x6C,0x3E,0x57,0x00,0x00,0x00,0x53};
+uint8_t internalSensorAddress[8] = {0x22,0x03,0x09,0x57,0x00,0x00,0x00,0x61};
+uint8_t connectorSensorAddress[8] = {0x22,0x24,0x24,0x57,0x00,0x00,0x00,0x46};
+
 void tasksJavierTemp::init(void)
 {
     //Temp0 buffer initialization
@@ -53,6 +58,9 @@ void tasksJavierTemp::init(void)
       numSamples[i] = 0;
     }
 
+    //Addreses initialization
+    TempSensorsData.sensorAddrPointer[0] = &internalSensorAddress[0];
+    TempSensorsData.sensorAddrPointer[1] = &externalSensorAddress[0];
 }
 
 void tasksJavierTemp::accumTempVal(float temp0, float temp1)
@@ -150,7 +158,7 @@ void tasksJavierTemp::checkValidTempValue (TempSensorData* sensorsData)
       sensorsData->measNumErrors[i]++;
       sensorsData->measuredTemp[i] = sensorsData->measuredAntTemp[i];
     }
-
+/*
     //Calculate deltaTemp
     sensorsData->deltaTemp[i] = fabs(sensorsData->measuredTemp[i] - sensorsData->measuredAntTemp[i]);
 
@@ -171,7 +179,7 @@ void tasksJavierTemp::checkValidTempValue (TempSensorData* sensorsData)
         sensorsData->commNumErrors[i]++;
       }
     }
-
+*/
     sensorsData->measuredAntTemp[i] = sensorsData->measuredTemp[i];
   }
 
@@ -179,7 +187,7 @@ void tasksJavierTemp::checkValidTempValue (TempSensorData* sensorsData)
 
 bool tasksJavierTemp::checkTempInRange(float tempValue)
 {
-  if((tempValue > -25.0) && (tempValue < 60.0))
+  if((tempValue > -40.0) && (tempValue < 60.0))
     return TRUE;
   else
     return FALSE;
@@ -214,7 +222,7 @@ bool tasksJavierTemp::meanTemperaturesTask()
 
 void tasksJavierTemp::accumulateMeanValues(int i)
 {
-  if(TempSensorsData.measuredTemp[i] > (float)-25.0)
+  if(TempSensorsData.measuredTemp[i] > (float)-40.0)
   {
     tempBuffer[i] += TempSensorsData.measuredTemp[i];
     numSamples[i]++;

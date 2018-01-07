@@ -1,6 +1,8 @@
 #ifndef TASKSJAVIER_h
 #define TASKSJAVIER_h
 
+#include <Particle.h>
+
 /* TAREAS HECHAS POR MI */
 #define NUM_TEMP_SENSORS 2
 #define TRUE 1
@@ -12,6 +14,7 @@ struct TempSensorData
   float deltaTemp[NUM_TEMP_SENSORS];
   int measNumErrors[NUM_TEMP_SENSORS];
   int commNumErrors[NUM_TEMP_SENSORS];
+  uint8_t* sensorAddrPointer[NUM_TEMP_SENSORS];
 };
 
 struct MeanTempsData

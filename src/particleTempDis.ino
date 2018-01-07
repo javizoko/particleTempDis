@@ -45,6 +45,8 @@ int oneSecSamples = 60000/mainLoopDelayMs;
 int samplesMainLoop = 0;
 float tempInt, tempExt;
 
+bool resolutionIsSet = FALSE;
+
 void setup()
 {
   pinMode(led1, OUTPUT);
@@ -55,6 +57,9 @@ void setup()
   Time.zone(+2);
   //Setup display
   oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3D (for the 128x64)
+
+  //Serial begin
+  Serial.begin(115200);
 }
 
 void loop()
@@ -63,15 +68,32 @@ void loop()
 
   //Enable D7 led. Start conversion
   digitalWrite(led1, HIGH);
+
+  //Set resulution of the sensors
+  if(resolutionIsSet == FALSE)
+  {
+    bool setOk = TRUE;
+    for (int i = 0; i < NUM_TEMP_SENSORS; i++)
+    {
+      if(!dallas.setResolution(TempSensorsData.sensorAddrPointer[i],(uint8_t)10))
+        setOk = FALSE;
+    }
+
+    if(setOk)
+      resolutionIsSet = TRUE;
+  }
+
   //Increase main loop samples
   samplesMainLoop++;
-  //Request temperature conversion
-  dallas.requestTemperatures();
 
-  // get the temperatures in Celsius
+  //Request & get temperature
   for (int i = 0; i < NUM_TEMP_SENSORS; i++)
   {
-    TempSensorsData.measuredTemp[i] = dallas.getTempCByIndex(i);
+    dallas.requestTemperaturesByAddress(TempSensorsData.sensorAddrPointer[i]);
+    TempSensorsData.measuredTemp[i] = dallas.getTempC(TempSensorsData.sensorAddrPointer[i]);
+    Serial.print("Temp Sensor: ");
+    Serial.println(i);
+    Serial.println(TempSensorsData.measuredTemp[i]);
   }
 
   tasksTemp.checkValidTempValue(&TempSensorsData);
@@ -85,10 +107,6 @@ void loop()
     //Publish
     Particle.publish("DateAndTemp", actualDate + ";" +  String(MeanTempData.temperature[0]) + ";" + String(MeanTempData.measErrors[0]) + ";" + String(MeanTempData.commErrors[0]) + ";" +  String(MeanTempData.temperature[1]) + ";" + String(MeanTempData.measErrors[1]) + ";" + String(MeanTempData.commErrors[1]));
   }
-
-  //Publish at loop sampling speed
-  Particle.publish("InstTemp0", String(TempSensorsData.measuredTemp[0]));
-  Particle.publish("InstTemp1", String(TempSensorsData.measuredTemp[1]));
 
   //PRINT LCD
   {
@@ -108,7 +126,7 @@ void loop()
   }
   //Disable D7 led. End conversion
   digitalWrite(led1, LOW);
-  delay(5000);
+  delay(mainLoopDelayMs);
 }
 
 String generateExcelDate(void)

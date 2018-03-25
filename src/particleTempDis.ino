@@ -46,6 +46,8 @@ int samplesMainLoop = 0;
 float tempInt, tempExt;
 
 bool resolutionIsSet = FALSE;
+bool tempReadIsValid = FALSE;
+bool firstValidTempMeasureIsDone = FALSE;
 
 void setup()
 {
@@ -94,37 +96,71 @@ void loop()
     Serial.print("Temp Sensor: ");
     Serial.println(i);
     Serial.println(TempSensorsData.measuredTemp[i]);
+    delay(100);
   }
 
-  tasksTemp.checkValidTempValue(&TempSensorsData);
-  endOfCycle = tasksTemp.meanTemperaturesTask();
+  tempReadIsValid = tasksTemp.checkValidTempValue(&TempSensorsData);
 
-  if(endOfCycle)
+  if(tempReadIsValid && !firstValidTempMeasureIsDone)
   {
-    //Generate actual date Excel format
-    String actualDate = generateExcelDate();
-
-    //Publish
-    Particle.publish("DateAndTemp", actualDate + ";" +  String(MeanTempData.temperature[0]) + ";" + String(MeanTempData.measErrors[0]) + ";" + String(MeanTempData.commErrors[0]) + ";" +  String(MeanTempData.temperature[1]) + ";" + String(MeanTempData.measErrors[1]) + ";" + String(MeanTempData.commErrors[1]));
-    Serial.println("Publish now...");
+    //Initialize moving windows.
+    tasksTemp.initializeTempBuffers();
   }
 
-  //PRINT LCD
+  if(tempReadIsValid)
+    firstValidTempMeasureIsDone = TRUE;
+
+  if(firstValidTempMeasureIsDone)
   {
+    endOfCycle = tasksTemp.meanTemperaturesTask();
+
+    if(endOfCycle)
+    {
+      //Generate actual date Excel format
+      String actualDate = generateExcelDate();
+
+      //Publish
+      Particle.publish("DateAndTemp", actualDate + ";" +  String(MeanTempData.temperature[0]) + ";" + String(MeanTempData.measErrors[0]) + ";" + String(MeanTempData.commErrors[0]) + ";" +  String(MeanTempData.temperature[1]) + ";" + String(MeanTempData.measErrors[1]) + ";" + String(MeanTempData.commErrors[1]));
+      Serial.println("Publish now...");
+    }
+    //PRINT TEMPERATURES IN DISPLAY
     oled.clearDisplay();
-    oled.setTextSize(2);
+    oled.setTextSize(1);
     oled.setTextColor(WHITE);
     oled.setCursor(0,0);
-    oled.print("Temperatu.");
+    oled.print("TEMPERATURA MEDIA MIN");
+    oled.setCursor(0,10);
+    oled.print("Interior: "); oled.print(String(int(MeanTempData.temperatureMovWin[0]))); oled.print("."); oled.print(String(int((MeanTempData.temperatureMovWin[0] - int(MeanTempData.temperatureMovWin[0]))*10.0))); oled.print("C");
     oled.setCursor(0,20);
-    oled.print("Int: "); oled.print(String(int(MeanTempData.temperature[0]))); oled.print("."); oled.print(String(int((MeanTempData.temperature[0] - int(MeanTempData.temperature[0]))*10.0))); oled.print("C");
-    oled.setCursor(0,40);
-    oled.print("Ext: "); oled.print(String(int(MeanTempData.temperature[1]))); oled.print("."); oled.print(String(int((MeanTempData.temperature[1] - int(MeanTempData.temperature[1]))*10.0))); oled.print("C");
+    oled.print("Exterior: "); oled.print(String(int(MeanTempData.temperatureMovWin[1]))); oled.print("."); oled.print(String(int((MeanTempData.temperatureMovWin[1] - int(MeanTempData.temperatureMovWin[1]))*10.0))); oled.print("C");
+    oled.setCursor(0,35);
+    oled.print("TEMPERATURAS INST");
+    oled.setCursor(0,45);
+    oled.print("Int: "); oled.print(String(int(TempSensorsData.measuredTemp[0]))); oled.print("."); oled.print(String(int((TempSensorsData.measuredTemp[0] - int(TempSensorsData.measuredTemp[0]))*10.0))); oled.print("C "); oled.print("-Err:");  oled.print(String(int(TempSensorsData.measNumErrors[0])));
+    oled.setCursor(0,55);
+    oled.print("Ext: "); oled.print(String(int(TempSensorsData.measuredTemp[1]))); oled.print("."); oled.print(String(int((TempSensorsData.measuredTemp[1] - int(TempSensorsData.measuredTemp[1]))*10.0))); oled.print("C "); oled.print("-Err:");  oled.print(String(int(TempSensorsData.measNumErrors[1])));
 
     oled.setTextColor(BLACK, WHITE); // 'inverted' text
-
     oled.display();
   }
+  else
+  {
+    //First valid temperature measurement is not already get...
+    oled.clearDisplay();
+    oled.setTextSize(1);
+    oled.setTextColor(WHITE);
+    oled.setCursor(0,0);
+    oled.print("Esperando lectura valida de temperatura...");
+    oled.setCursor(0,35);
+    oled.print("TEMPERATURAS INST");
+    oled.setCursor(0,45);
+    oled.print("Int: "); oled.print(String(int(TempSensorsData.measuredTemp[0]))); oled.print("."); oled.print(String(int((TempSensorsData.measuredTemp[0] - int(TempSensorsData.measuredTemp[0]))*10.0))); oled.print("C "); oled.print("-Err:");  oled.print(String(int(TempSensorsData.measNumErrors[0])));
+    oled.setCursor(0,55);
+    oled.print("Ext: "); oled.print(String(int(TempSensorsData.measuredTemp[1]))); oled.print("."); oled.print(String(int((TempSensorsData.measuredTemp[1] - int(TempSensorsData.measuredTemp[1]))*10.0))); oled.print("C "); oled.print("-Err:");  oled.print(String(int(TempSensorsData.measNumErrors[1])));
+    oled.setTextColor(BLACK, WHITE); // 'inverted' text
+    oled.display();
+  }
+
   //Disable D7 led. End conversion
   digitalWrite(led1, LOW);
   delay(mainLoopDelayMs);

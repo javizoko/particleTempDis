@@ -20,6 +20,7 @@ struct TempSensorData
 struct MeanTempsData
 {
   float temperature[NUM_TEMP_SENSORS];
+  float temperatureMovWin[NUM_TEMP_SENSORS];
   int measErrors[NUM_TEMP_SENSORS];
   int commErrors[NUM_TEMP_SENSORS];
 };
@@ -29,6 +30,12 @@ extern MeanTempsData MeanTempData;
 extern float tempBuffer[NUM_TEMP_SENSORS];
 extern int numSamples[NUM_TEMP_SENSORS];
 
+struct movWinDataStr{
+  int index;
+  int size;
+  float accumValue;
+};
+
 class tasksJavierTemp
 {
 public:
@@ -37,13 +44,17 @@ public:
   float calcMeanValues(int tempIndx);
   int calcNumErrors(int tempIndx);
 
-  void checkValidTempValue (TempSensorData* sensorsData);
+  bool checkValidTempValue (TempSensorData* sensorsData);
   bool meanTemperaturesTask();
+  void initializeTempBuffers(void);
 
 private:
   bool checkTempInRange(float tempValue);
   void accumulateMeanValues(int );
   void resetCycleTask(void);
+  void initMovWinFilter(movWinDataStr* movWinData, float* arrayData, int sizeOfArray);
+  void movWinFilter(movWinDataStr* movWinData, float* arrayData, float actualValue);
+  void initMovWinFilterToValue(movWinDataStr* movWinData, float* arrayData, int sizeOfArray, float initDesiredValue);
 
 };
 

@@ -8,6 +8,7 @@
 /* DEFINES */
 #define MIN_TEMP_DEGREES_VALID (float)-20.0
 #define MAX_TEMP_DEGREES_VALID (float)50.0
+#define SIZE_MOV_WIN_TEMP_ARRAYS 24
 
 /* PRIVATE VARS */
 //Temp0 vars
@@ -28,6 +29,10 @@ TempSensorData TempSensorsData;
 MeanTempsData MeanTempData;
 float tempBuffer[NUM_TEMP_SENSORS];
 int numSamples[NUM_TEMP_SENSORS];
+
+typedef float MovWinTempArray[SIZE_MOV_WIN_TEMP_ARRAYS];
+MovWinTempArray MovWinTempData[NUM_TEMP_SENSORS];
+movWinDataStr MovWinFilterStr[NUM_TEMP_SENSORS];
 
 /* ADDRESES */
 uint8_t externalSensorAddress[8] = {0x22,0x6C,0x3E,0x57,0x00,0x00,0x00,0x53};
@@ -56,6 +61,8 @@ void tasksJavierTemp::init(void)
 
       tempBuffer[i] = 0;
       numSamples[i] = 0;
+
+      initMovWinFilter(&MovWinFilterStr[i],&MovWinTempData[i][0], SIZE_MOV_WIN_TEMP_ARRAYS);
     }
 
     //Addreses initialization
@@ -149,40 +156,20 @@ int tasksJavierTemp::calcNumErrors(int tempIndx)
 
 
 /* NEW IMPLEMENTATION */
-void tasksJavierTemp::checkValidTempValue (TempSensorData* sensorsData)
+bool tasksJavierTemp::checkValidTempValue (TempSensorData* sensorsData)
 {
+  bool validTempReaded = TRUE;
   for (int i = 0; i < NUM_TEMP_SENSORS; i++)
   {
     if(!checkTempInRange(sensorsData->measuredTemp[i]))
     {
+      validTempReaded = FALSE;
       sensorsData->measNumErrors[i]++;
       sensorsData->measuredTemp[i] = sensorsData->measuredAntTemp[i];
     }
-/*
-    //Calculate deltaTemp
-    sensorsData->deltaTemp[i] = fabs(sensorsData->measuredTemp[i] - sensorsData->measuredAntTemp[i]);
-
-    //Difference between samples bigger to 2.0
-    if(sensorsData->deltaTemp[i] > 2.0)
-    {
-      float otherSensorTemp = 0;
-      if(i < (NUM_TEMP_SENSORS-1))
-        otherSensorTemp = sensorsData->measuredTemp[i+1];
-      else
-        otherSensorTemp = sensorsData->measuredTemp[0];
-
-      //Check temperature equal to other sensor
-      if(sensorsData->measuredTemp[i] == otherSensorTemp)
-      {
-        //Error
-        sensorsData->measuredTemp[i] = sensorsData->measuredAntTemp[i];
-        sensorsData->commNumErrors[i]++;
-      }
-    }
-*/
     sensorsData->measuredAntTemp[i] = sensorsData->measuredTemp[i];
   }
-
+  return validTempReaded;
 }
 
 bool tasksJavierTemp::checkTempInRange(float tempValue)
@@ -200,6 +187,9 @@ bool tasksJavierTemp::meanTemperaturesTask()
   for (int i = 0; i < NUM_TEMP_SENSORS; i++)
   {
     accumulateMeanValues(i);
+    movWinFilter(&MovWinFilterStr[i],&MovWinTempData[i][0],TempSensorsData.measuredTemp[i]);
+
+    MeanTempData.temperatureMovWin[i] = MovWinFilterStr[i].accumValue/(float)MovWinFilterStr[i].size;
   }
 
   if(fiveSecTast >= samplesOneMinute)
@@ -237,5 +227,51 @@ void tasksJavierTemp::resetCycleTask()
     TempSensorsData.commNumErrors[i] = 0;
     tempBuffer[i] = 0;
     numSamples[i] = 0;
+  }
+}
+
+void tasksJavierTemp::movWinFilter(movWinDataStr* movWinData, float* arrayData, float actualValue)
+{
+  movWinData->accumValue -= *(arrayData + movWinData->index);
+  *(arrayData + movWinData->index) = actualValue;
+  movWinData->accumValue += actualValue;
+
+  movWinData->index++;
+  if(movWinData->index >= movWinData->size)
+    movWinData->index = 0;
+}
+
+void tasksJavierTemp::initMovWinFilter(movWinDataStr* movWinData, float* arrayData, int sizeOfArray)
+{
+  movWinData->index = 0;
+  movWinData->accumValue = 0.0;
+  movWinData->size = sizeOfArray;
+
+  //Initialize array to 0s
+  for (int i = 0; i < movWinData->size; i++)
+  {
+    *(arrayData + i) = (float)0.0;
+  }
+}
+
+void tasksJavierTemp::initMovWinFilterToValue(movWinDataStr* movWinData, float* arrayData, int sizeOfArray, float initDesiredValue)
+{
+  movWinData->index = 0;
+  movWinData->accumValue = initDesiredValue * (float)sizeOfArray;
+  movWinData->size = sizeOfArray;
+
+  //Initialize array to 0s
+  for (int i = 0; i < movWinData->size; i++)
+  {
+    *(arrayData + i) = (float)initDesiredValue;
+  }
+}
+
+void tasksJavierTemp::initializeTempBuffers (void)
+{
+  for (int i = 0; i < NUM_TEMP_SENSORS; i++)
+  {
+    initMovWinFilterToValue(&MovWinFilterStr[i],&MovWinTempData[i][0], SIZE_MOV_WIN_TEMP_ARRAYS,TempSensorsData.measuredTemp[i]);
+    MeanTempData.temperatureMovWin[i] = MovWinFilterStr[i].accumValue/(float)MovWinFilterStr[i].size;
   }
 }

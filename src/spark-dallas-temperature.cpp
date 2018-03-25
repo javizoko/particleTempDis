@@ -353,7 +353,7 @@ int16_t DallasTemperature::millisToWaitForConversion(uint8_t bitResolution)
     case 9:
         return 94;
     case 10:
-        return 188;
+        return 250;
     case 11:
         return 375;
     default:

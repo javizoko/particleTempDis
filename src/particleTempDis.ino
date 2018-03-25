@@ -126,13 +126,13 @@ void loop()
     oled.setTextSize(1);
     oled.setTextColor(WHITE);
     oled.setCursor(0,0);
-    oled.print("TEMPERATURA MEDIA MIN");
+    oled.print("TEMPERATURAS");
     oled.setCursor(0,10);
     oled.print("Interior: "); oled.print(String(int(MeanTempData.temperatureMovWin[0]))); oled.print("."); oled.print(String(int((MeanTempData.temperatureMovWin[0] - int(MeanTempData.temperatureMovWin[0]))*10.0))); oled.print("C");
     oled.setCursor(0,20);
     oled.print("Exterior: "); oled.print(String(int(MeanTempData.temperatureMovWin[1]))); oled.print("."); oled.print(String(int((MeanTempData.temperatureMovWin[1] - int(MeanTempData.temperatureMovWin[1]))*10.0))); oled.print("C");
     oled.setCursor(0,35);
-    oled.print("TEMPERATURAS INST");
+    oled.print("TEMPERATURAS INST-ERR");
     oled.setCursor(0,45);
     oled.print("Int: "); oled.print(String(int(TempSensorsData.measuredTemp[0]))); oled.print("."); oled.print(String(int((TempSensorsData.measuredTemp[0] - int(TempSensorsData.measuredTemp[0]))*10.0))); oled.print("C "); oled.print("-Err:");  oled.print(String(int(TempSensorsData.measNumErrors[0])));
     oled.setCursor(0,55);

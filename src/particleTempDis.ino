@@ -41,9 +41,7 @@ tasksJavierTemp tasksTemp;
 /* PRIVATE VARS */
 //Task times vars
 int mainLoopDelayMs = 5000;
-int oneSecSamples = 60000/mainLoopDelayMs;
 int samplesMainLoop = 0;
-float tempInt, tempExt;
 
 bool resolutionIsSet = FALSE;
 bool tempReadIsValid = FALSE;
@@ -56,7 +54,7 @@ void setup()
   dallas.begin();
   //Initialize Javier's tasks
   tasksTemp.init();
-  Time.zone(+1);
+  Time.zone(+2);
   //Setup display
   oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3D (for the 128x64)
 
@@ -101,12 +99,12 @@ void loop()
 
   tempReadIsValid = tasksTemp.checkValidTempValue(&TempSensorsData);
 
+  //Check if it is first valid temperature read...
   if(tempReadIsValid && !firstValidTempMeasureIsDone)
   {
     //Initialize moving windows.
     tasksTemp.initializeTempBuffers();
   }
-
   if(tempReadIsValid)
     firstValidTempMeasureIsDone = TRUE;
 
@@ -120,7 +118,7 @@ void loop()
       String actualDate = generateExcelDate();
 
       //Publish
-      Particle.publish("DateAndTemp", actualDate + ";" +  String(MeanTempData.temperature[0]) + ";" + String(MeanTempData.measErrors[0]) + ";" + String(MeanTempData.commErrors[0]) + ";" +  String(MeanTempData.temperature[1]) + ";" + String(MeanTempData.measErrors[1]) + ";" + String(MeanTempData.commErrors[1]));
+      Particle.publish("DateAndTemp", actualDate + ";" +  String(MeanTempData.temperatureMovWin[0]) + ";" + String(MeanTempData.measErrors[0]) + ";" +  String(MeanTempData.temperatureMovWin[1]) + ";" + String(MeanTempData.measErrors[1]));
       Serial.println("Publish now...");
     }
     //PRINT TEMPERATURES IN DISPLAY

@@ -60,6 +60,12 @@ void setup()
 
   //Serial begin
   Serial.begin(115200);
+
+  //Code for burning in flash static IP address, only to be done once...
+  /*{
+    WiFi.setStaticIP({10, 0, 0, 11}, {255, 255, 255, 0}, {10, 0, 0, 1}, {8, 8, 8, 8});
+    WiFi.useStaticIP();
+  }*/
 }
 
 void loop()
